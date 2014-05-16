@@ -1,0 +1,6 @@
+*/bin/
+*fastx/FastQC/
+*/test/*
+*/stampede/bin/
+*/stampede/test
+*/stampede/annotations/
