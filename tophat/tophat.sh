@@ -1,4 +1,5 @@
 #query1=WT_rep1t.fastq
+#query2=WT_rep2t.fastq
 #genome=genome.fas
 #annotation=annotation.gtf
 #read_mismatches=2
@@ -14,6 +15,7 @@
 #min_isoform_fraction=0.15
 #mate_std_dev=20
 #segment_length=20
+#jobName=th2001
 
 
 QUERY1=${query1}
@@ -40,14 +42,13 @@ Read_mismatches=${read_mismatches}
 
 echoerr() { echo -e "$@" 1>&2; }
 
+date1=$(date +"%s")
+
 tar xzf bin.tgz
 
 export CWD=${PWD}
 export PATH="${CWD}/bin:${PATH}"
 
-# Create local temp directory
-export TMPDIR="${CWD}/tmp"
-mkdir -p $TMPDIR
 # Automatically find out how many cores the node
 # has and create this many threads
 export THREADS=`cat /proc/cpuinfo | grep processor | wc -l`
@@ -63,11 +64,12 @@ iget -fT ${GENOME} .
 if ! [ -e $GENOME_F ]; then echo "Error: Genome sequence not found."; exit 1; fi
 
 # Create temp .fa
-if [[ ! $GENOME_F =~ ".fa$" ]]; then 
+if [[ $GENOME_F =~ \.fa$ ]]; then 
+    echo "working on genome: $GENOME_F"
+else
     ln -s $GENOME_F ${GENOME_F}.fa;
     echo "Created symbolic link () to $GENOME_F";
 fi
-
 
 for J in 1.bt2 2.bt2 3.bt2 4.bt2 rev.1.bt2 rev.2.bt2
 do
@@ -95,6 +97,11 @@ QUERY2_F=
 if [ "$PE" = "1" ]; then
     QUERY2_F=$(basename ${QUERY2})
     iget -fT ${QUERY2} .
+
+    bin/resynch_paired_reads.pl $QUERY1_F $QUERY2_F
+    find2perl . -name '*_synched' -eval 'my $o=$_; $_=~s/_synched$//;rename $o, $_;'|perl
+    
+    wc -l *.fastq
 fi
 
 GTF_F==
@@ -160,7 +167,8 @@ fi
 
 ARGS="$ARGS $GENOME_F $QUERY1_F $QUERY2_F"
 
-echoerr "Executing tophat $ARGS..."
+echoerr "Executing tophat $ARGS\n"
+
 tophat $ARGS 2> tophat.stderr
 exit_code=$?
 echoerr "Done with exit code: $exit_code!"
@@ -182,6 +190,15 @@ realName=${name/_processed_reads/}
 mv "$output_dir/accepted_hits_sorted.bam" "$output_dir/${realName}-${JOB}.bam"
 mv "$output_dir/accepted_hits_sorted.bam.bai" "$output_dir/${realName}-${JOB}.bam.bai"
 
+rm "$output_dir/accepted_hits.bam"
+
 rm -f *.fa *.bt2 $GTF_F $QUERY1_F $QUERY2_F $GENOME_F $GTF_F
 rm -rfv tmp bin
+
+find tophat_out/ -maxdepth 1 -type f -exec md5sum {} \; > "$output_dir/MD5SUM"
+
+date2=$(date +"%s")
+diff=$(($date2-$date1))
+
+echoerr "\n$(($diff / 60)) minutes and $(($diff % 60)) seconds elapsed.\n"
 

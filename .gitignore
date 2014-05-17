@@ -1,5 +1,5 @@
-*/bin/
-*fastx/FastQC/
+*.swp
+*~
 */test/*
 */stampede/bin/
 */stampede/test

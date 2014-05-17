@@ -1,7 +1,7 @@
 {
     "name": "dnalc-tophat-stampede",
     "parallelism": "serial",
-    "version": "2.0.11",
+    "version": "2.0.11.1",
     "helpURI": "http://tophat.cbcb.umd.edu/",
     "label": "TopHat",
     "shortDescription": "A spliced read mapper for RNA-Seq",
